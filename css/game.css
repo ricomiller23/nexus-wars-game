@@ -1,0 +1,130 @@
+/* NEXUS WARS - Game Styling */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 50%, #16213e 100%);
+    color: #e0e0e0;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+#overlay-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+#overlay-ui > * {
+    pointer-events: auto;
+}
+
+/* Space-fantasy theme colors */
+:root {
+    --color-nexus-gold: #ffd700;
+    --color-player-blue: #4a9eff;
+    --color-ai-red: #ff4a4a;
+    --color-space-gray: #5a5a6e;
+    --color-glow: rgba(255, 215, 0, 0.4);
+    --color-ui-bg: rgba(20, 20, 40, 0.85);
+    --color-text: #e0e0e0;
+    --color-text-dim: #a0a0b0;
+}
+
+/* Glow effects for Nexus Points */
+.nexus-glow {
+    filter: drop-shadow(0 0 8px var(--color-glow))
+            drop-shadow(0 0 16px var(--color-glow));
+}
+
+/* Button styles */
+button {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #4a9eff 0%, #357abd 100%);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(74, 158, 255, 0.5);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tooltip styles */
+.tooltip {
+    position: absolute;
+    background: var(--color-ui-bg);
+    border: 1px solid var(--color-nexus-gold);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--color-text);
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Animation keyframes */
+@keyframes pulse-glow {
+    0%, 100% {
+        filter: drop-shadow(0 0 8px var(--color-glow));
+    }
+    50% {
+        filter: drop-shadow(0 0 16px var(--color-glow))
+                drop-shadow(0 0 24px var(--color-glow));
+    }
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
