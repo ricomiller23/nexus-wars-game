@@ -19,8 +19,27 @@ function initBoardRenderer(canvasElement, gameState) {
         canvas: canvasElement,
         ctx: ctx,
         render: (state) => {
+            // Update particle system
+            if (typeof particleSystem !== 'undefined') {
+                particleSystem.update();
+            }
+
             renderBoard(ctx, state);
             renderSidebar(ctx, state);
+
+            // Render particles and animations
+            if (typeof particleSystem !== 'undefined') {
+                particleSystem.draw(ctx);
+                particleSystem.drawAnimations(ctx);
+            }
+
+            // Render UI highlights if available
+            if (typeof renderSelectedPiece === 'function') {
+                renderSelectedPiece(ctx, state);
+            }
+            if (typeof renderMoveHighlights === 'function') {
+                renderMoveHighlights(ctx, state);
+            }
         }
     };
 }
@@ -275,70 +294,186 @@ function renderSidebar(ctx, state) {
 
     // Sidebar content
     let yOffset = sidebarY + 30;
-    const lineHeight = 30;
+    const lineHeight = 25;
 
     // Title
     ctx.fillStyle = '#ffd700';
     ctx.font = 'bold 24px sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText('NEXUS WARS', sidebarX + 20, yOffset);
-    yOffset += lineHeight * 2;
+    yOffset += lineHeight * 1.5;
+
+    // Round counter
+    ctx.fillStyle = '#e0e0e0';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(`Round: ${state.roundCount}/${state.maxRounds}`, sidebarX + 20, yOffset);
+    yOffset += lineHeight * 1.2;
 
     // Current Phase
     ctx.fillStyle = '#e0e0e0';
     ctx.font = 'bold 16px sans-serif';
-    ctx.fillText('Current Phase:', sidebarX + 20, yOffset);
+    ctx.fillText('Phase:', sidebarX + 20, yOffset);
     yOffset += lineHeight;
     ctx.font = '14px sans-serif';
-    ctx.fillStyle = '#a0a0b0';
+    const phaseColor = state.phase === 'DRAFT' ? '#4a9eff' : state.phase === 'MOVEMENT' ? '#ffd700' : '#ff6b6b';
+    ctx.fillStyle = phaseColor;
     ctx.fillText(state.phase, sidebarX + 30, yOffset);
     yOffset += lineHeight * 1.5;
 
-    // Current Player
+    // Current Player / Turn
+    if (state.phase === 'DRAFT') {
+        ctx.fillStyle = '#e0e0e0';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText('Drafting:', sidebarX + 20, yOffset);
+        yOffset += lineHeight;
+        const draftingPlayer = state.diceState.draftingPlayerId;
+        ctx.fillStyle = draftingPlayer === 'PLAYER' ? '#4a9eff' : '#ff4a4a';
+        ctx.font = '14px sans-serif';
+        ctx.fillText(draftingPlayer || 'None', sidebarX + 30, yOffset);
+        yOffset += lineHeight * 1.5;
+    } else if (state.phase === 'MOVEMENT') {
+        ctx.fillStyle = '#e0e0e0';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText('Moving:', sidebarX + 20, yOffset);
+        yOffset += lineHeight;
+        const movingPlayer = state.movementState.currentMovingPlayerId;
+        ctx.fillStyle = movingPlayer === 'PLAYER' ? '#4a9eff' : '#ff4a4a';
+        ctx.font = '14px sans-serif';
+        ctx.fillText(movingPlayer || 'None', sidebarX + 30, yOffset);
+        yOffset += lineHeight * 1.5;
+    }
+
+    // Dice Pool
     ctx.fillStyle = '#e0e0e0';
     ctx.font = 'bold 16px sans-serif';
-    ctx.fillText('Current Player:', sidebarX + 20, yOffset);
-    yOffset += lineHeight;
-    ctx.font = '14px sans-serif';
-    ctx.fillStyle = state.currentPlayerId === 'PLAYER' ? '#4a9eff' : '#ff4a4a';
-    ctx.fillText(state.currentPlayerId, sidebarX + 30, yOffset);
-    yOffset += lineHeight * 1.5;
+    ctx.fillText('Dice:', sidebarX + 20, yOffset);
+    yOffset += lineHeight + 5;
 
-    // Dice Pool Placeholder
-    ctx.fillStyle = '#e0e0e0';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText('Dice Pool:', sidebarX + 20, yOffset);
-    yOffset += lineHeight;
-    ctx.fillStyle = '#a0a0b0';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('(No dice rolled yet)', sidebarX + 30, yOffset);
-    yOffset += lineHeight * 1.5;
+    if (state.phase === 'DRAFT' && state.diceState.availableDice.length > 0) {
+        // Draw available dice for drafting
+        drawDiceRow(ctx, sidebarX + 20, yOffset, state.diceState.availableDice, 'available');
+        yOffset += 45;
+    } else if (state.phase === 'MOVEMENT') {
+        // Show drafted dice for both players
+        ctx.font = '12px sans-serif';
+        ctx.fillStyle = '#4a9eff';
+        ctx.fillText('Player:', sidebarX + 30, yOffset);
+        yOffset += 20;
+        const playerDice = state.diceState.draftedDice.PLAYER;
+        const playerUsed = state.movementState.usedDiceIndices.PLAYER;
+        drawDiceRow(ctx, sidebarX + 30, yOffset, playerDice, 'player', playerUsed);
+        yOffset += 45;
 
-    // Controlled Nexus Count
+        ctx.fillStyle = '#ff4a4a';
+        ctx.fillText('AI:', sidebarX + 30, yOffset);
+        yOffset += 20;
+        const aiDice = state.diceState.draftedDice.AI;
+        const aiUsed = state.movementState.usedDiceIndices.AI;
+        drawDiceRow(ctx, sidebarX + 30, yOffset, aiDice, 'ai', aiUsed);
+        yOffset += 45;
+    } else {
+        ctx.fillStyle = '#a0a0b0';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('No dice yet', sidebarX + 30, yOffset);
+        yOffset += lineHeight;
+    }
+
+    // Nexus Control
     ctx.fillStyle = '#e0e0e0';
     ctx.font = 'bold 16px sans-serif';
     ctx.fillText('Nexus Control:', sidebarX + 20, yOffset);
     yOffset += lineHeight;
 
-    const playerNexusCount = countControlledNexus(state, 'PLAYER');
-    const aiNexusCount = countControlledNexus(state, 'AI');
+    const playerNexusCount = state.players.find(p => p.id === 'PLAYER').controlledNexusCount;
+    const aiNexusCount = state.players.find(p => p.id === 'AI').controlledNexusCount;
 
     ctx.fillStyle = '#4a9eff';
     ctx.font = '14px sans-serif';
-    ctx.fillText(`Player: ${playerNexusCount}`, sidebarX + 30, yOffset);
+    ctx.fillText(`Player: ${playerNexusCount}/5`, sidebarX + 30, yOffset);
     yOffset += lineHeight;
     ctx.fillStyle = '#ff4a4a';
-    ctx.fillText(`AI: ${aiNexusCount}`, sidebarX + 30, yOffset);
+    ctx.fillText(`AI: ${aiNexusCount}/5`, sidebarX + 30, yOffset);
     yOffset += lineHeight * 1.5;
 
-    // Faction Abilities Reference (Placeholder)
+    // Game Log (last 5 messages)
     ctx.fillStyle = '#e0e0e0';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText('Faction Abilities:', sidebarX + 20, yOffset);
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('Game Log:', sidebarX + 20, yOffset);
     yOffset += lineHeight;
+
+    const logMessages = state.gameLog.slice(-5);
+    ctx.font = '11px sans-serif';
     ctx.fillStyle = '#a0a0b0';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('(Not yet selected)', sidebarX + 30, yOffset);
+    logMessages.forEach(log => {
+        const msg = log.message;
+        // Wrap text if too long
+        const maxWidth = sidebarWidth - 50;
+        const words = msg.split(' ');
+        let line = '';
+        words.forEach(word => {
+            const testLine = line + word + ' ';
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && line !== '') {
+                ctx.fillText(line, sidebarX + 30, yOffset);
+                yOffset += 15;
+                line = word + ' ';
+            } else {
+                line = testLine;
+            }
+        });
+        ctx.fillText(line, sidebarX + 30, yOffset);
+        yOffset += 16;
+    });
+
+    // Victory message if game over
+    if (state.phase === 'GAME_OVER' && state.winner) {
+        yOffset += 10;
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 18px sans-serif';
+        const winner = state.players.find(p => p.id === state.winner);
+        ctx.fillText(`${winner.name} WINS!`, sidebarX + 20, yOffset);
+    }
+}
+
+function drawDiceRow(ctx, x, y, dice, type, usedIndices = []) {
+    const dieSize = 30;
+    const spacing = 35;
+
+    dice.forEach((value, index) => {
+        const dieX = x + (index * spacing);
+        const dieY = y;
+        const isUsed = usedIndices && usedIndices.includes(index);
+
+        // Draw die background
+        if (isUsed) {
+            ctx.fillStyle = 'rgba(80, 80, 80, 0.5)';
+        } else if (type === 'available') {
+            ctx.fillStyle = '#ffd700';
+        } else if (type === 'player') {
+            ctx.fillStyle = '#4a9eff';
+        } else if (type === 'ai') {
+            ctx.fillStyle = '#ff4a4a';
+        } else {
+            ctx.fillStyle = '#ffffff';
+        }
+
+        ctx.fillRect(dieX, dieY, dieSize, dieSize);
+
+        // Draw border
+        ctx.strokeStyle = isUsed ? '#505050' : '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(dieX, dieY, dieSize, dieSize);
+
+        // Draw value
+        ctx.fillStyle = isUsed ? '#606060' : '#000000';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(value.toString(), dieX + dieSize / 2, dieY + dieSize / 2);
+    });
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
 }
 
 function countControlledNexus(state, playerId) {

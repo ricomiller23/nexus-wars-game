@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEXUS WARS - Strategic Board Game</title>
     <link rel="stylesheet" href="css/game.css">
 </head>
+
 <body>
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
@@ -13,12 +15,16 @@
             <!-- Dynamic UI elements will be added here via JavaScript -->
         </div>
     </div>
-    
+
     <!-- Load game modules -->
+    <script src="js/sound-manager.js"></script>
+    <script src="js/particle-system.js"></script>
     <script src="js/dice-system.js"></script>
     <script src="js/factions.js"></script>
     <script src="js/board-renderer.js"></script>
     <script src="js/ai-opponent.js"></script>
+    <script src="js/ui-controls.js"></script>
     <script src="js/game-engine.js"></script>
 </body>
+
 </html>

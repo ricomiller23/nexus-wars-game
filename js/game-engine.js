@@ -26,6 +26,11 @@ function initGame() {
     // Start render loop
     gameLoop();
 
+    // Auto-start the game after a brief delay to allow rendering
+    setTimeout(() => {
+        startNewGame();
+    }, 500);
+
     console.log('Nexus Wars initialized successfully');
 }
 
@@ -205,8 +210,18 @@ function startDiceDraftPhase(state) {
 
     addToGameLog(`${currentPlayer.name} rolled: [${rolledDice.join(', ')}]`);
 
+    // Play dice roll sound
+    if (typeof soundManager !== 'undefined') {
+        soundManager.playDiceRoll();
+    }
+
     // For human vs human, wait for manual drafting
     // For now, auto-start drafting process
+
+    // Auto-execute AI turn if AI is drafting first
+    if (state.diceState.draftingPlayerId === 'AI') {
+        executeAITurn(state);
+    }
 }
 
 function draftNextDie(state, playerId, dieIndex) {
@@ -232,6 +247,11 @@ function draftNextDie(state, playerId, dieIndex) {
 
     addToGameLog(`${getPlayer(state, playerId).name} drafted a ${dieValue}`);
 
+    // Play dice select sound
+    if (typeof soundManager !== 'undefined') {
+        soundManager.playDiceSelect();
+    }
+
     // Check if draft is complete
     const currentPlayerDiceCount = state.diceState.draftedDice[state.firstPlayerThisRound].length;
     const opponentId = state.firstPlayerThisRound === 'PLAYER' ? 'AI' : 'PLAYER';
@@ -246,6 +266,12 @@ function draftNextDie(state, playerId, dieIndex) {
 
     // Alternate drafting turn
     state.diceState.draftingPlayerId = (playerId === 'PLAYER') ? 'AI' : 'PLAYER';
+
+    // Auto-execute AI turn if it's AI's turn
+    if (state.diceState.draftingPlayerId === 'AI') {
+        executeAITurn(state);
+    }
+
     return true;
 }
 
@@ -256,6 +282,11 @@ function startMovementPhase(state) {
     state.movementState.movementPhaseComplete = false;
 
     addToGameLog('Movement phase begins!');
+
+    // Auto-execute AI turn if it's AI's turn
+    if (state.movementState.currentMovingPlayerId === 'AI') {
+        executeAITurn(state);
+    }
 }
 
 function selectDieForMovement(state, playerId, dieIndex) {
@@ -320,6 +351,11 @@ function executeMove(state, playerId, pieceId, targetPosition) {
     } else {
         // Switch to other player
         state.movementState.currentMovingPlayerId = (playerId === 'PLAYER') ? 'AI' : 'PLAYER';
+
+        // Auto-execute AI turn if it's AI's turn
+        if (state.movementState.currentMovingPlayerId === 'AI') {
+            executeAITurn(state);
+        }
     }
 
     return true;
@@ -397,6 +433,23 @@ function applyMove(state, move) {
             enemyHomeSpace.pieces.push(enemyPiece);
 
             addToGameLog(`${getPlayer(state, playerId).name} bumped ${enemyPiece.type} back to home!`);
+
+            // Play bump sound
+            if (typeof soundManager !== 'undefined') {
+                soundManager.playPieceBump();
+            }
+
+            // Create particle effect for bump
+            if (typeof particleSystem !== 'undefined' && typeof renderer !== 'undefined') {
+                const spaceCount = 20;
+                const boardCenterX = renderer.canvas.width * 0.35;
+                const boardCenterY = renderer.canvas.height * 0.5;
+                const boardRadius = Math.min(renderer.canvas.width * 0.28, renderer.canvas.height * 0.42);
+                const angle = ((targetPosition - 1) / spaceCount) * Math.PI * 2 - Math.PI / 2;
+                const x = boardCenterX + Math.cos(angle) * boardRadius;
+                const y = boardCenterY + Math.sin(angle) * boardRadius;
+                particleSystem.createExplosion(x, y, '#ff4a4a', 15);
+            }
         }
     }
 
@@ -404,6 +457,11 @@ function applyMove(state, move) {
     piece.position = targetPosition;
     piece.spacesTraveled += dieValue;
     targetSpace.pieces.push(piece);
+
+    // Play move sound
+    if (typeof soundManager !== 'undefined') {
+        soundManager.playPieceMove();
+    }
 
     // Handle Nexus capture
     if (targetSpace.type === 'NEXUS_POINT' && piece.type === 'WARRIOR') {
@@ -415,6 +473,25 @@ function applyMove(state, move) {
             updateNexusControl(state);
 
             addToGameLog(`${getPlayer(state, playerId).name} captured ${targetSpace.nexusPower} Nexus!`);
+
+            // Play Nexus capture sound
+            if (typeof soundManager !== 'undefined') {
+                soundManager.playNexusCapture();
+            }
+
+            // Create particle effect for Nexus capture
+            if (typeof particleSystem !== 'undefined' && typeof renderer !== 'undefined') {
+                const spaceCount = 20;
+                const boardCenterX = renderer.canvas.width * 0.35;
+                const boardCenterY = renderer.canvas.height * 0.5;
+                const boardRadius = Math.min(renderer.canvas.width * 0.28, renderer.canvas.height * 0.42);
+                const angle = ((targetPosition - 1) / spaceCount) * Math.PI * 2 - Math.PI / 2;
+                const x = boardCenterX + Math.cos(angle) * boardRadius;
+                const y = boardCenterY + Math.sin(angle) * boardRadius;
+                const color = playerId === 'PLAYER' ? '#4a9eff' : '#ff4a4a';
+                particleSystem.createExplosion(x, y, '#ffd700', 25);
+                particleSystem.createGlowPulse(x, y, color, 1.5);
+            }
         }
     }
 
@@ -436,6 +513,15 @@ function startNexusCheckPhase(state) {
         state.phase = 'GAME_OVER';
         addToGameLog(`GAME OVER! ${getPlayer(state, victoryResult.winner).name} wins by ${victoryResult.type}!`);
         console.log('Victory:', victoryResult);
+
+        // Play victory or defeat sound
+        if (typeof soundManager !== 'undefined') {
+            if (victoryResult.winner === 'PLAYER') {
+                soundManager.playVictory();
+            } else {
+                soundManager.playDefeat();
+            }
+        }
     } else {
         // Check if max rounds reached
         if (state.roundCount >= state.maxRounds) {
