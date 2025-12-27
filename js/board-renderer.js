@@ -45,17 +45,17 @@ function initBoardRenderer(canvasElement, gameState) {
 }
 
 function resizeCanvas(canvas) {
-    const windowRatio = window.innerWidth / window.innerHeight;
-    const canvasRatio = INTERNAL_WIDTH / INTERNAL_HEIGHT;
+    const windowAspect = window.innerWidth / window.innerHeight;
+    const canvasAspect = INTERNAL_WIDTH / INTERNAL_HEIGHT;
 
-    if (windowRatio > canvasRatio) {
+    if (windowAspect > canvasAspect) {
         // Window is wider - fit to height
         canvas.style.height = '100vh';
-        canvas.style.width = `${100 * canvasRatio / windowRatio}vh`;
+        canvas.style.width = `${canvasAspect * 100}vh`;
     } else {
-        // Window is taller - fit to width
+        // Window is taller - fit to width  
         canvas.style.width = '100vw';
-        canvas.style.height = `${100 / canvasRatio * windowRatio}vw`;
+        canvas.style.height = `${100 / canvasAspect}vw`;
     }
 }
 

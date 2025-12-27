@@ -23,6 +23,9 @@ function initGame() {
     // Initialize renderer
     renderer = initBoardRenderer(canvas, gameState);
 
+    // Initialize UI controls
+    initUIControls(canvas, gameState);
+
     // Start render loop
     gameLoop();
 

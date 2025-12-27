@@ -39,7 +39,7 @@ function handleCanvasClick(e, canvas, state) {
 function handleDraftClick(x, y, state) {
     // Check if click is in sidebar dice area
     const sidebarX = INTERNAL_WIDTH * 0.7;
-    const diceY = 145; // Approximate Y position of dice
+    const diceY = 350; // Matches the actual Y position where dice are rendered in sidebar
     const dieSize = 30;
     const spacing = 35;
 
@@ -63,7 +63,7 @@ function handleMovementClick(x, y, state) {
 
     // Check if clicking on dice (to select  die)
     const sidebarX = INTERNAL_WIDTH * 0.7;
-    let diceY = 165; // Player dice Y position
+    let diceY = 380; // Player dice Y position (matches actual rendering position)
 
     if (currentPlayer === 'PLAYER') {
         const dieSize = 30;
